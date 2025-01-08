@@ -1,28 +1,24 @@
-// src/components/GameComponent.tsx
+// src/components/game/GameComponent.tsx
 'use client'
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Enemy } from '@/game/objects/enemy';
 import { GameOver } from '@/components/game/GameOver';
-
-import { GameWorld } from '@/game/core/GameWorld'; // 追加
-import { InputSystem } from '@/game/systems/InputSystem'; // 追加
-
-
+import { GameWorld } from '@/game/core/GameWorld';
+import { InputSystem } from '@/game/systems/InputSystem';
+import { GameLoop, GameState } from '@/game/core/GameLoop';
 
 const GameComponent = () => {
   const gameWorld = useRef(new GameWorld());
-  const inputSystem = useRef(new InputSystem()); // InputSystemのインスタンス追加
+  const inputSystem = useRef(new InputSystem());
+  const gameLoopRef = useRef<GameLoop | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const requestRef = useRef<number | undefined>(undefined);
-  const keysPressed = useRef<Set<string>>(new Set()); // Ensure keysPressed is defined
   
   const [isLandscape, setIsLandscape] = useState(true);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  const gameState = useRef({
+  const initialGameState: GameState = {
     x: 100,
     y: 200,
     vx: 0,
@@ -30,11 +26,13 @@ const GameComponent = () => {
     jumping: false,
     score: 0,
     gameOver: false,
-    enemies: [] as Enemy[],
+    enemies: [],
     lastEnemySpawn: 0,
     spawnInterval: 2000,
     gameStartTime: Date.now()
-  });
+  };
+
+  const [gameState, setGameState] = useState<GameState>(initialGameState);
 
   // タッチ入力のハンドラ
   const handleTouchStart = (action: 'left' | 'right' | 'jump') => {
@@ -45,7 +43,13 @@ const GameComponent = () => {
     inputSystem.current.handleTouchEnd(action);
   };
 
-  
+  // 画面の向きとサイズの検出のuseEffectは変更なし
+
+
+
+
+
+
   // タッチデバイスの検出
   useEffect(() => {
     const checkTouchDevice = () => {
@@ -96,135 +100,38 @@ const GameComponent = () => {
     };
   }, []);
 
-  // キーボード入力
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => keysPressed.current.add(e.code);
-    const handleKeyUp = (e: KeyboardEvent) => keysPressed.current.delete(e.code);
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
-
-
-  
   // メインゲームループ
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    if (!canvas) return;
 
-    canvas.width = 800;
-    canvas.height = 400;
+    // GameLoopインスタンスの作成
+    gameLoopRef.current = new GameLoop(
+      canvas, 
+      gameWorld.current, 
+      inputSystem.current, 
+      gameState
+    );
 
-    const update = () => {
-      const state = gameState.current;
-      if (state.gameOver) return;
-
-      // 入力システムから現在の入力状態を取得
-      const inputState = inputSystem.current.getInputState();
-
-      // 移動処理
-      if (inputState.left) {
-        state.vx = -5;
-      } else if (inputState.right) {
-        state.vx = 5;
-      } else {
-        state.vx = 0;
-      }
-
-      // ジャンプ処理
-      if (inputState.jump && !state.jumping) {
-        state.vy = gameWorld.current.jumpForce;
-        state.jumping = true;
-      }
-
-
-      // 物理演算
-      state.x += state.vx;
-      state.y += state.vy;
-      state.vy += gameWorld.current.gravity;
-
-      // 衝突判定と位置制限
-      const constrainedPosition = gameWorld.current.constrainPosition(state.x, state.y);
-      state.x = constrainedPosition.x;
-      state.y = constrainedPosition.y;
-
-      // ジャンプ状態のリセット
-      if (state.y === gameWorld.current.groundHeight) {
-        state.jumping = false;
-        state.vy = 0;
-      }
-
-
-      // 敵の生成と更新
-      const currentTime = Date.now();
-      if (currentTime - state.lastEnemySpawn >= state.spawnInterval) {
-        const enemy = new Enemy(canvas.width);
-        const timePlayed = (currentTime - state.gameStartTime) / 1000;
-        const scoreSpeedBonus = Math.min(state.score * 0.2, 5);
-        const timeSpeedBonus = Math.min(timePlayed / 15, 5);
-        enemy.speed = 4 + scoreSpeedBonus + timeSpeedBonus;
-        state.enemies.push(enemy);
-        state.lastEnemySpawn = currentTime;
-        state.spawnInterval = Math.max(2000 - state.score * 20 - timePlayed * 10, 500);
-      }
-
-      state.enemies = state.enemies.filter(enemy => {
-        enemy.update();
-        if (enemy.hasCollidedWith({ x: state.x, y: state.y })) {
-          state.gameOver = true;
-        }
-        if (enemy.hasPassed({ x: state.x })) {
-          state.score += 1;
-        }
-        return !enemy.isOffScreen();
-      });
-    };
-
-    const render = () => {
-      const state = gameState.current;
-
-      ctx.fillStyle = '#87CEEB';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = '#90EE90';
-      ctx.fillRect(0, 300, canvas.width, 100);
-
-      ctx.fillStyle = '#000000';
-      state.enemies.forEach(enemy => {
-        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-      });
-
-      ctx.fillStyle = '#FF0000';
-      ctx.fillRect(state.x, state.y, 32, 32);
-
-      ctx.fillStyle = 'black';
-      ctx.font = 'bold 24px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText(`Score: ${state.score}`, 10, 30);
-    };
-
-    const gameLoop = () => {
-      update();
-      render();
-      requestRef.current = requestAnimationFrame(gameLoop);
-    };
-
-    requestRef.current = requestAnimationFrame(gameLoop);
+    // ゲームルプ開始
+    gameLoopRef.current.start();
 
     // クリーンアップ
     return () => {
+      gameLoopRef.current?.stop();
       inputSystem.current.cleanup();
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
     };
-  }, []); // 依存配列から controls を削除
+  }, [gameState]);
+
+
+  // ゲームオーバー時の処理
+  const handleRetry = () => {
+    if (gameLoopRef.current) {
+      gameLoopRef.current.reset(initialGameState);
+      setGameState(initialGameState);
+    }
+  };
 
   // 縦画面警告
   if (!isLandscape) {
@@ -258,26 +165,12 @@ return (
       />
       
       {/* ゲームオーバー表示 */}
-      {gameState.current.gameOver && (
-        <GameOver
-          score={gameState.current.score}
-          onRetry={() => {
-            gameState.current = {
-              x: 100,
-              y: 200,
-              vx: 0,
-              vy: 0,
-              jumping: false,
-              score: 0,
-              gameOver: false,
-              enemies: [],
-              lastEnemySpawn: Date.now(),
-              spawnInterval: 2000,
-              gameStartTime: Date.now()
-            };
-          }}
-        />
-      )}
+      {gameState.gameOver && (
+      <GameOver
+        score={gameState.score}
+        onRetry={handleRetry}
+      />
+    )}
     </div>
 
     {/* 仮想ゲームパッド */}
