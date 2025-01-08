@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Enemy } from '@/game/objects/enemy';
-import { GameOver } from '@/components/GameOver';
+import { GameOver } from '@/components/game/GameOver';
 
 const GameComponent = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
