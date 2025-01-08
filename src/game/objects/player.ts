@@ -1,3 +1,4 @@
+// src/game/objects/player.ts
 import { GameObject } from './base';
 import { type Dot } from './dot';
 

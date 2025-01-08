@@ -1,4 +1,4 @@
-// GameComponent.tsx
+// src/components/GameComponent.tsx
 'use client'
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle } from 'lucide-react';

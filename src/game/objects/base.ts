@@ -1,3 +1,4 @@
+// src/game/objects/base.ts
 import { type Dot } from './dot';
 
 export class GameObject {

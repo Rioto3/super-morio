@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -37,9 +38,7 @@ style={{
   msUserSelect: 'none',
   userSelect: 'none',
 }}
-
       >
-
         
         {children}
       </body>

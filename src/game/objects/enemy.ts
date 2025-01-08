@@ -1,3 +1,4 @@
+// src/game/objects/enemy.ts
 export class Enemy {
   x: number;
   y: number;
