@@ -1,0 +1,8 @@
+{
+  "git": {
+    "branches": [
+      "main",
+      "release"
+    ]
+  }
+}
