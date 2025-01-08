@@ -101,58 +101,64 @@ private updateState(deltaTime: number): void {
 }
 
 
-  // 敵の更新ロジック
-  private updateEnemies(dt: number): void {
-    const currentTime = Date.now();
-    const state = this.gameState;
+// src/game/core/GameLoop.ts の updateEnemies メソッド全体
 
-    // 新しい敵の生成
-    if (currentTime - state.lastEnemySpawn >= state.spawnInterval) {
-      const enemy = new Enemy(this.canvas.width);
-      const timePlayed = (currentTime - state.gameStartTime) / 1000;
-      const scoreSpeedBonus = Math.min(state.score * 0.2, 5);
-      const timeSpeedBonus = Math.min(timePlayed / 15, 5);
-      
-      const baseSpeed = 240; // 1秒あたりのベース速度（ピクセル）
-      enemy.velocity.x = -(baseSpeed + scoreSpeedBonus * 60 + timeSpeedBonus * 60) * dt;
-      
-      state.enemies.push(enemy);
-      state.lastEnemySpawn = currentTime;
-      state.spawnInterval = Math.max(
-        2000 - state.score * 20 - timePlayed * 10, 
-        500
-      );
-    }
+private updateEnemies(dt: number): void {
+ const currentTime = Date.now();
+ const state = this.gameState;
 
-  // 既存の敵の更新
-  state.enemies = state.enemies.filter(enemy => {
-    // 敵の位置を時間で調整して更新
-    enemy.position.x += enemy.velocity.x * dt;
+ // 敵の生成タイミング調整
+ const minSpawnInterval = 1000; // 最小スポーン間隔：1秒
+ const initialSpawnInterval = 2000; // 初期スポーン間隔：2秒
+ const speedIncrement = 50; // 敵が1体出るごとに何ミリ秒短くするか
 
-    // プレイヤーとの衝突判定
-    if (this.collisionSystem.checkCollision(
-      { 
-        position: state.position,
-        width: 32,
-        height: 32
-      },
-      enemy
-    )) {
-      state.gameOver = true;
-    }
+ // スポーン間隔を計算（敵の数に応じて徐々に短くなる）
+ const currentSpawnInterval = Math.max(
+   initialSpawnInterval - (state.score * speedIncrement),
+   minSpawnInterval
+ );
 
-    // スコア加算（敵を通過したとき）を修正
-    if (!enemy.passed && 
-        enemy.position.x + enemy.width < state.position.x) {
-      enemy.passed = true;  // 通過フラグを設定
-      this.scoreSystem.addEnemyAvoidScore();
-      state.score = this.scoreSystem.getCurrentScore();
-    }
-
-    // 画面外の敵を除去
-    return enemy.position.x > -enemy.width;
-   });
+ if (currentTime - state.lastEnemySpawn >= currentSpawnInterval) {
+   const enemy = new Enemy(this.canvas.width);
+   
+   // 基本速度 + スコアに応じた追加速度
+   const baseSpeed = 400;
+   const speedBonus = state.score * 20; // 1体倒すごとに20ずつ速くなる
+   enemy.velocity.x = -(baseSpeed + speedBonus);
+   
+   state.enemies.push(enemy);
+   state.lastEnemySpawn = currentTime;
  }
+
+ // 既存の敵の更新
+ state.enemies = state.enemies.filter(enemy => {
+   // 敵の位置を更新
+   enemy.position.x += enemy.velocity.x * dt;
+
+   // プレイヤーとの衝突判定
+   if (this.collisionSystem.checkCollision(
+     { 
+       position: state.position,
+       width: 32,
+       height: 32
+     },
+     enemy
+   )) {
+     state.gameOver = true;
+     this.stop();  // ゲームループを停止
+   }
+
+   // スコア加算（敵を通過したとき）
+   if (!enemy.passed && enemy.position.x + enemy.width < state.position.x) {
+     enemy.passed = true;
+     this.scoreSystem.addEnemyAvoidScore();
+     state.score = this.scoreSystem.getCurrentScore();
+   }
+
+   // 画面外の敵を除去
+   return enemy.position.x > -enemy.width;
+ });
+}
 
  // プレイヤーを通過したかの判定
  private hasPassedPlayer(enemy: Enemy): boolean {

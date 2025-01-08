@@ -47,8 +47,7 @@ const GameComponent = () => {
 
   // 初期ゲーム状態
   const initialGameState: GameState = {
-    // position: { x: 100, y: 300 },
-    position: { x: 100, y: 268 },
+    position: { x: 100, y: 268 }, // 左側の固定位置
     velocity: { x: 0, y: 0 },
     jumping: false,
     score: 0,
@@ -58,44 +57,82 @@ const GameComponent = () => {
     spawnInterval: 2000,
     gameStartTime: Date.now()
   };
+  
 
   const [gameState, setGameState] = useState<GameState>(initialGameState);
 
   // リトライ処理
-  const handleRetry = useCallback(() => {
-    if (gameLoopRef.current) {
-      scoreSystem.current?.reset();
-      gameLoopRef.current.reset(initialGameState);
-      setGameState(initialGameState);
-    }
-  }, []);
+const handleRetry = useCallback(() => {
+  // 新しい状態を作成
+  const newState = {
+    ...initialGameState,
+    gameStartTime: Date.now()
+  };
 
-  // メインゲームループ
-  React.useEffect(() => {
-    const canvas = canvasRef.current;
-    const currentScoreSystem = scoreSystem.current;
-    if (!canvas) return;
+  // 各システムをリセット
+  scoreSystem.current?.reset();
+  
+  // GameLoopを停止してから新しいインスタンスを作成
+  if (gameLoopRef.current) {
+    gameLoopRef.current.stop();
+  }
 
-    // GameLoopのインスタンス作成（引数を更新）
+  // キャンバスが存在する場合のみ新しいGameLoopを作成
+  if (canvasRef.current) {
     gameLoopRef.current = new GameLoop(
-      canvas,
+      canvasRef.current,
       gameWorld.current,
       inputSystem.current,
       collisionSystem.current,
       scoreSystem.current,
-      gameState
+      newState
     );
-
-    // ゲームループ開始
     gameLoopRef.current.start();
+  }
+
+  // 状態を更新
+  setGameState(newState);
+}, []);
+  
+React.useEffect(() => {
+  const canvas = canvasRef.current;
+  const currentScoreSystem = scoreSystem.current;
+  if (!canvas) return;
+
+  gameLoopRef.current = new GameLoop(
+    canvas,
+    gameWorld.current,
+    inputSystem.current,
+    collisionSystem.current,
+    scoreSystem.current,
+    gameState
+  );
+
+  gameLoopRef.current.start();
+
+
+  // ゲーム状態を監視して、gameOverになったら状態を更新
+  const checkGameOver = () => {
+    if (gameLoopRef.current && gameState.gameOver) {
+      setGameState(prev => ({
+        ...prev,
+        gameOver: true
+      }));
+    }
+  };
+
+  // 定期的にゲーム状態をチェック
+  const intervalId = setInterval(checkGameOver, 100);
+
 
     // クリーンアップ
-    return () => {
-      gameLoopRef.current?.stop();
-      inputSystem.current.cleanup();
-      currentScoreSystem?.onGameOver();
-    };
-  }, [gameState]);
+  return () => {
+    clearInterval(intervalId);
+    gameLoopRef.current?.stop();
+    inputSystem.current.cleanup();
+    currentScoreSystem?.onGameOver();
+  };
+}, [gameState]);
 
   // 縦向き画面の場合は警告を表示
   if (!isLandscape) {

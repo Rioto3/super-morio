@@ -20,7 +20,10 @@ export class InputSystem {
   constructor() {
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
-    this.init();
+    // クライアントサイドでのみ初期化を行う
+    if (typeof window !== 'undefined') {
+      this.init();
+    }
   }
 
   private init(): void {
@@ -29,10 +32,11 @@ export class InputSystem {
   }
 
   cleanup(): void {
-    window.removeEventListener('keydown', this.handleKeyDown);
-    window.removeEventListener('keyup', this.handleKeyUp);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('keydown', this.handleKeyDown);
+      window.removeEventListener('keyup', this.handleKeyUp);
+    }
   }
-
   private handleKeyDown(e: KeyboardEvent): void {
     switch (e.code) {
       case 'ArrowLeft':
