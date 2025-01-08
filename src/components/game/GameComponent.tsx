@@ -1,16 +1,28 @@
 // src/components/game/GameComponent.tsx
+// ゲームのメインコンポーネント
+// - UIとゲームロジックの橋渡し
+// - 画面の向きやサイズの管理
+// - タッチ入力の処理
+// - ゲームの開始/終了の管理
+
 'use client'
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { GameOver } from '@/components/game/GameOver';
 import { GameWorld } from '@/game/core/GameWorld';
 import { InputSystem } from '@/game/systems/InputSystem';
-import { GameLoop, GameState } from '@/game/core/GameLoop';
+import { GameLoop } from '@/game/core/GameLoop';
+import { GameState } from '@/types/game';
+// import { Vector2D } from '@/types/geometry';
+// import { CollisionSystem } from '@/game/systems/CollisionSystem';
+import { ScoreSystem } from '@/game/systems/ScoreSystem';
 
 const GameComponent = () => {
   const gameWorld = useRef(new GameWorld());
   const inputSystem = useRef(new InputSystem());
+  // const collisionSystem = useRef(new CollisionSystem());
+  const scoreSystem = useRef(new ScoreSystem());
   const gameLoopRef = useRef<GameLoop | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
@@ -19,10 +31,8 @@ const GameComponent = () => {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const initialGameState: GameState = {
-    x: 100,
-    y: 200,
-    vx: 0,
-    vy: 0,
+    position: { x: 100, y: 200 },
+    velocity: { x: 0, y: 0 },
     jumping: false,
     score: 0,
     gameOver: false,
@@ -34,6 +44,15 @@ const GameComponent = () => {
 
   const [gameState, setGameState] = useState<GameState>(initialGameState);
 
+  // handleRetryをメモ化
+  const handleRetry = useCallback(() => {
+    if (gameLoopRef.current) {
+      scoreSystem.current?.reset();
+      gameLoopRef.current.reset(initialGameState);
+      setGameState(initialGameState);
+    }
+  }, []);
+
   // タッチ入力のハンドラ
   const handleTouchStart = (action: 'left' | 'right' | 'jump') => {
     inputSystem.current.handleTouchStart(action);
@@ -42,13 +61,6 @@ const GameComponent = () => {
   const handleTouchEnd = (action: 'left' | 'right' | 'jump') => {
     inputSystem.current.handleTouchEnd(action);
   };
-
-  // 画面の向きとサイズの検出のuseEffectは変更なし
-
-
-
-
-
 
   // タッチデバイスの検出
   useEffect(() => {
@@ -100,38 +112,39 @@ const GameComponent = () => {
     };
   }, []);
 
-
   // メインゲームループ
   useEffect(() => {
     const canvas = canvasRef.current;
+    const currentScoreSystem = scoreSystem.current;
     if (!canvas) return;
 
-    // GameLoopインスタンスの作成
     gameLoopRef.current = new GameLoop(
       canvas, 
       gameWorld.current, 
-      inputSystem.current, 
+      inputSystem.current,
       gameState
     );
 
-    // ゲームルプ開始
     gameLoopRef.current.start();
 
-    // クリーンアップ
     return () => {
       gameLoopRef.current?.stop();
       inputSystem.current.cleanup();
+      currentScoreSystem?.onGameOver();
     };
   }, [gameState]);
 
+  // スペースキーでのリトライ
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && gameState.gameOver) {
+        handleRetry();
+      }
+    };
 
-  // ゲームオーバー時の処理
-  const handleRetry = () => {
-    if (gameLoopRef.current) {
-      gameLoopRef.current.reset(initialGameState);
-      setGameState(initialGameState);
-    }
-  };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameState.gameOver, handleRetry]);
 
   // 縦画面警告
   if (!isLandscape) {
@@ -150,82 +163,83 @@ const GameComponent = () => {
     );
   }
 
-return (
-  <main className="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center overflow-hidden">
-    <div className="relative">
-      <canvas
-        ref={canvasRef}
-        style={{
-          width: `${canvasSize.width}px`,
-          height: `${canvasSize.height}px`
-        }}
-        width={800}
-        height={400}
-        className="border border-gray-700 rounded-lg"
-      />
-      
-      {/* ゲームオーバー表示 */}
-      {gameState.gameOver && (
-      <GameOver
-        score={gameState.score}
-        onRetry={handleRetry}
-      />
-    )}
-    </div>
+  return (
+    <main className="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center overflow-hidden">
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          style={{
+            width: `${canvasSize.width}px`,
+            height: `${canvasSize.height}px`
+          }}
+          width={800}
+          height={400}
+          className="border border-gray-700 rounded-lg"
+        />
+        
+        {/* ゲームオーバー表示 */}
+        {gameState.gameOver && (
+          <GameOver
+            score={gameState.score}
+            onRetry={handleRetry}
+          />
+        )}
+      </div>
 
-    {/* 仮想ゲームパッド */}
-    {isTouchDevice && (
-      <div className="fixed bottom-4 left-0 right-0 px-4 flex justify-between items-center" style={{ zIndex: 2 }}>
-        <div className="flex gap-1">
+      {/* 仮想ゲームパッド */}
+      {isTouchDevice && (
+        <div className="fixed bottom-4 left-0 right-0 px-4 flex justify-between items-center" style={{ zIndex: 2 }}>
+          <div className="flex gap-1">
+            <button
+              className="w-14 h-14 bg-gray-800 text-white rounded-full flex items-center 
+                       justify-center text-2xl active:bg-gray-700 select-none touch-none
+                       border-4 border-white/30 shadow-lg"
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleTouchStart('left');
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                handleTouchEnd('left');
+              }}
+            >
+              ←
+            </button>
+            <button
+              className="w-14 h-14 bg-gray-800 text-white rounded-full flex items-center 
+                       justify-center text-2xl active:bg-gray-700 select-none touch-none
+                       border-4 border-white/30 shadow-lg"
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleTouchStart('right');
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                handleTouchEnd('right');
+              }}
+            >
+              →
+            </button>
+          </div>
           <button
-            className="w-14 h-14 bg-gray-800 text-white rounded-full flex items-center 
-                     justify-center text-2xl active:bg-gray-700 select-none touch-none
+            className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center 
+                     justify-center text-xl font-bold active:bg-green-500 select-none touch-none
                      border-4 border-white/30 shadow-lg"
             onTouchStart={(e) => {
               e.preventDefault();
-              handleTouchStart('left');
+              handleTouchStart('jump');
             }}
             onTouchEnd={(e) => {
               e.preventDefault();
-              handleTouchEnd('left');
+              handleTouchEnd('jump');
             }}
           >
-            ←
-          </button>
-          <button
-            className="w-14 h-14 bg-gray-800 text-white rounded-full flex items-center 
-                     justify-center text-2xl active:bg-gray-700 select-none touch-none
-                     border-4 border-white/30 shadow-lg"
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleTouchStart('right');
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              handleTouchEnd('right');
-            }}
-          >
-            →
+            A
           </button>
         </div>
-        <button
-          className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center 
-                   justify-center text-xl font-bold active:bg-green-500 select-none touch-none
-                   border-4 border-white/30 shadow-lg"
-          onTouchStart={(e) => {
-            e.preventDefault();
-            handleTouchStart('jump');
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            handleTouchEnd('jump');
-          }}
-        >
-          A
-        </button>
-      </div>
-    )}
-  </main>
-);
-}
+      )}
+    </main>
+  );
+};
+
 export default GameComponent;

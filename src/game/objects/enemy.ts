@@ -1,46 +1,42 @@
 // src/game/objects/enemy.ts
+import { Vector2D } from '@/types/geometry';
+
 export class Enemy {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  speed: number;
-  passed: boolean;  // プレイヤーが回避したかどうか
+  position: Vector2D;
+  velocity: Vector2D;
+  width: number = 32;
+  height: number = 32;
 
   constructor(canvasWidth: number) {
-    this.width = 32;
-    this.height = 32;
-    this.x = canvasWidth;  // 画面右端から開始
-    this.y = 300 - this.height;  // 地面の高さに合わせる
-    this.speed = 5;  // 初期速度
-    this.passed = false;
+    this.position = {
+      x: canvasWidth,
+      y: 268  // groundHeight - height
+    };
+    this.velocity = {
+      x: -4,  // 左に移動
+      y: 0
+    };
   }
 
   update(): void {
-    this.x -= this.speed;  // 左に移動
+    this.position.x += this.velocity.x;  // 左に移動
   }
 
   isOffScreen(): boolean {
-    return this.x + this.width < 0;  // 画面外に出たか判定
+    return this.position.x + this.width < 0;  // 画面外に出たか判定
   }
 
-  hasCollidedWith(player: { x: number; y: number; }): boolean {
-    // 簡単な衝突判定
-    const playerWidth = 32;
-    const playerHeight = 32;
-    
+  hasCollidedWith(player: { position: Vector2D }): boolean {
     return !(
-      this.x > player.x + playerWidth ||
-      this.x + this.width < player.x ||
-      this.y > player.y + playerHeight ||
-      this.y + this.height < player.y
+      this.position.x > player.position.x + 32 ||
+      this.position.x + this.width < player.position.x ||
+      this.position.y > player.position.y + 32 ||
+      this.position.y + this.height < player.position.y
     );
   }
 
-  hasPassed(player: { x: number }): boolean {
-    // プレイヤーを通過したかどうかの判定（スコア計算用）
-    if (!this.passed && this.x + this.width < player.x) {
-      this.passed = true;
+  hasPassed(player: { position: Vector2D }): boolean {
+    if (this.position.x + this.width < player.position.x) {
       return true;
     }
     return false;
