@@ -68,38 +68,38 @@ export class GameLoop {
    this.canvas.height = 400;
  }
 
+// src/game/core/GameLoop.ts
+private updateState(deltaTime: number): void {
+  if (this.gameState.gameOver) return;
 
- 
-  // ゲーム状態の更新
-  private updateState(deltaTime: number): void {
-    if (this.gameState.gameOver) return;
+  const inputState = this.inputSystem.getInputState();
+  const dt = deltaTime / 1000; // ミリ秒を秒に変換
 
-    const inputState = this.inputSystem.getInputState();
-    const dt = deltaTime / 1000; // ミリ秒を秒に変換
+  // 移動速度を調整
+  const moveSpeed = 400; // 1秒あたり400ピクセル
+  this.gameState.velocity.x = inputState.left ? -moveSpeed : 
+                             inputState.right ? moveSpeed : 0;
 
-    // 移動処理（速度を時間で調整）
-    const moveSpeed = 300; // 1秒あたりの移動速度（ピクセル）
-    this.gameState.velocity.x = inputState.left ? -moveSpeed * dt : 
-                               inputState.right ? moveSpeed * dt : 0;
-
-    // ジャンプ処理（初速を時間で調整）
-    if (inputState.jump && !this.gameState.jumping) {
-      this.gameState.velocity.y = this.gameWorld.jumpForce * dt;
-      this.gameState.jumping = true;
-    }
-
-    // GameWorldに更新を委譲（deltaTimeを渡す）
-    this.gameWorld.update(this.gameState, dt);
-
-    // ジャンプ状態のリセット
-    if (this.gameState.position.y === this.gameWorld.groundHeight) {
-      this.gameState.jumping = false;
-      this.gameState.velocity.y = 0;
-    }
-
-    // 敵の生成と更新
-    this.updateEnemies(dt);
+  // ジャンプ処理
+  if (inputState.jump && !this.gameState.jumping) {
+    this.gameState.velocity.y = this.gameWorld.jumpForce;
+    this.gameState.jumping = true;
   }
+
+  // GameWorldに更新を委譲
+  this.gameWorld.update(this.gameState, dt);
+
+  // ジャンプ状態のリセット（地面に着地したとき）
+  if (this.gameState.position.y >= this.gameWorld.groundHeight) {
+    this.gameState.position.y = this.gameWorld.groundHeight;
+    this.gameState.jumping = false;
+    this.gameState.velocity.y = 0;
+  }
+
+  // 敵の生成と更新
+  this.updateEnemies(dt);
+}
+
 
   // 敵の更新ロジック
   private updateEnemies(dt: number): void {

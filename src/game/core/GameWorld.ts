@@ -19,8 +19,8 @@ export class GameWorld {
   readonly width: number = 800;
   readonly height: number = 400;
   readonly groundHeight: number = 300;
-  readonly gravity: number = 0.5;
-  readonly jumpForce: number = -12;
+  readonly gravity: number = 600;  // 1秒あたりの落下速度として調整
+  readonly jumpForce: number = -400;  // 1秒あたりの初速として調整
 
   constructor() {
     this.physicsEngine = new PhysicsEngine(this.gravity);
@@ -49,7 +49,7 @@ export class GameWorld {
     gameState.position = constrainedPosition;
     gameState.velocity = newVelocity;
   }
-  
+
   constrainPosition(x: number, y: number): Vector2D {
     return {
       x: Math.max(0, Math.min(x, this.width - 32)), // プレイヤーの幅を考慮
