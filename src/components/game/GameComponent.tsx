@@ -5,8 +5,13 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Enemy } from '@/game/objects/enemy';
 import { GameOver } from '@/components/game/GameOver';
+import { GameWorld } from '@/game/core/GameWorld'; // 追加
+
 
 const GameComponent = () => {
+  // GameWorldのインスタンスを作成
+  const gameWorld = useRef(new GameWorld());
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const requestRef = useRef<number | undefined>(undefined);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -110,7 +115,8 @@ const GameComponent = () => {
     }
   };
 
-  // メインゲームループ
+  
+  // メインゲームループ内の物理演算部分を修正
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -132,29 +138,28 @@ const GameComponent = () => {
         state.vx = 0;
       }
 
+      // ジャンプ処理を物理世界の設定を使って修正
       if ((controls.jump || keysPressed.current.has('Space') || keysPressed.current.has('ArrowUp')) && !state.jumping) {
-        state.vy = -12;
+        state.vy = gameWorld.current.jumpForce;
         state.jumping = true;
       }
 
       // 物理演算
       state.x += state.vx;
       state.y += state.vy;
-      state.vy += 0.5;
+      state.vy += gameWorld.current.gravity;
 
-      // 衝突判定
-      if (state.y > 268) {
-        state.y = 268;
-        state.vy = 0;
+      // 衝突判定と位置制限
+      const constrainedPosition = gameWorld.current.constrainPosition(state.x, state.y);
+      state.x = constrainedPosition.x;
+      state.y = constrainedPosition.y;
+
+      // ジャンプ状態のリセット
+      if (state.y === gameWorld.current.groundHeight) {
         state.jumping = false;
+        state.vy = 0;
       }
-      if (state.x < 0) {
-        state.x = 0;
-        state.vx = 0;
-      } else if (state.x > 768) {
-        state.x = 768;
-        state.vx = 0;
-      }
+
 
       // 敵の生成と更新
       const currentTime = Date.now();
