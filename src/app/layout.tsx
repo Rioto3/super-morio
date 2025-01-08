@@ -25,8 +25,22 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+
+
+
+className={`${geistSans.variable} ${geistMono.variable} antialiased select-none`}
+style={{
+  WebkitTouchCallout: 'none',
+  WebkitUserSelect: 'none',
+  KhtmlUserSelect: 'none',
+  MozUserSelect: 'none',
+  msUserSelect: 'none',
+  userSelect: 'none',
+}}
+
       >
+
+        
         {children}
       </body>
     </html>
