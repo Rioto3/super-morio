@@ -3,7 +3,7 @@
 // - 重力の適用
 // - 速度と位置の計算
 // - 純粋に数学的な計算を担当
-
+// src/game/core/PhysicsEngine.ts
 import { Vector2D } from '@/types/geometry';
 
 export class PhysicsEngine {
@@ -13,17 +13,21 @@ export class PhysicsEngine {
     this.gravity = gravity;
   }
 
-  updatePosition(position: Vector2D, velocity: Vector2D): Vector2D {
+  updateVelocity(velocity: Vector2D, deltaTime: number): Vector2D {
     return {
-      x: position.x + velocity.x,
-      y: position.y + velocity.y
+      x: velocity.x,
+      y: velocity.y + this.gravity * deltaTime
     };
   }
 
-  updateVelocity(velocity: Vector2D): Vector2D {
+  updatePosition(
+    position: Vector2D, 
+    velocity: Vector2D, 
+    deltaTime: number
+  ): Vector2D {
     return {
-      x: velocity.x,
-      y: velocity.y + this.gravity
+      x: position.x + velocity.x * deltaTime,
+      y: position.y + velocity.y * deltaTime
     };
   }
 }

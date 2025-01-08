@@ -1,35 +1,51 @@
 // src/components/game/GameComponent.tsx
 // ゲームのメインコンポーネント
-// - UIとゲームロジックの橋渡し
-// - 画面の向きやサイズの管理
-// - タッチ入力の処理
-// - ゲームの開始/終了の管理
+//
+// 機能：
+// - ゲームループの管理
+// - 各種システム（入力、衝突、スコア）の初期化と管理
+// - ビューとコントロールの統合
+// - 画面サイズとデバイス対応の管理
+// src/components/game/GameComponent.tsx
+// ゲームのメインコンポーネント
+//
+// 機能：
+// - ゲームループの管理
+// - 各種システム（入力、衝突、スコア）の初期化と管理
+// - ビューとコントロールの統合
+// - 画面サイズとデバイス対応の管理
 
 'use client'
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { GameOver } from '@/components/game/GameOver';
+import React, { useRef, useState, useCallback } from 'react';
 import { GameWorld } from '@/game/core/GameWorld';
 import { InputSystem } from '@/game/systems/InputSystem';
 import { GameLoop } from '@/game/core/GameLoop';
 import { GameState } from '@/types/game';
-// import { Vector2D } from '@/types/geometry';
-// import { CollisionSystem } from '@/game/systems/CollisionSystem';
+import { CollisionSystem } from '@/game/systems/CollisionSystem';
 import { ScoreSystem } from '@/game/systems/ScoreSystem';
+import { GameOver } from '@/components/game/GameOver';
+import { OrientationWarning } from '@/components/game/views/OrientationWarning';
+import { VirtualGamepad } from '@/components/game/controls/VirtualGamepad';
+import { KeyboardControls } from '@/components/game/controls/KeyboardControls';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
+import { useDeviceType } from '@/hooks/useDeviceType';
+import { useInputHandler } from '@/hooks/useInputHandler';
 
 const GameComponent = () => {
+  // システムの初期化
   const gameWorld = useRef(new GameWorld());
   const inputSystem = useRef(new InputSystem());
-  // const collisionSystem = useRef(new CollisionSystem());
+  const collisionSystem = useRef(new CollisionSystem());
   const scoreSystem = useRef(new ScoreSystem());
   const gameLoopRef = useRef<GameLoop | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  
-  const [isLandscape, setIsLandscape] = useState(true);
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
+  // カスタムフックの使用
+  const { isLandscape, canvasSize } = useDeviceOrientation();
+  const isTouchDevice = useDeviceType();
+  const { handleTouchStart, handleTouchEnd } = useInputHandler(inputSystem);
+
+  // 初期ゲーム状態
   const initialGameState: GameState = {
     position: { x: 100, y: 200 },
     velocity: { x: 0, y: 0 },
@@ -44,7 +60,7 @@ const GameComponent = () => {
 
   const [gameState, setGameState] = useState<GameState>(initialGameState);
 
-  // handleRetryをメモ化
+  // リトライ処理
   const handleRetry = useCallback(() => {
     if (gameLoopRef.current) {
       scoreSystem.current?.reset();
@@ -53,80 +69,26 @@ const GameComponent = () => {
     }
   }, []);
 
-  // タッチ入力のハンドラ
-  const handleTouchStart = (action: 'left' | 'right' | 'jump') => {
-    inputSystem.current.handleTouchStart(action);
-  };
-
-  const handleTouchEnd = (action: 'left' | 'right' | 'jump') => {
-    inputSystem.current.handleTouchEnd(action);
-  };
-
-  // タッチデバイスの検出
-  useEffect(() => {
-    const checkTouchDevice = () => {
-      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
-    };
-    
-    checkTouchDevice();
-    window.addEventListener('resize', checkTouchDevice);
-    return () => window.removeEventListener('resize', checkTouchDevice);
-  }, []);
-
-  // 画面の向きとサイズの検出
-  useEffect(() => {
-    const handleOrientationChange = () => {
-      const isLandscapeMode = window.innerWidth > window.innerHeight;
-      setIsLandscape(isLandscapeMode);
-
-      if (isLandscapeMode) {
-        const availableHeight = window.innerHeight;
-        const availableWidth = window.innerWidth;
-        const aspectRatio = 800 / 400;
-        let width = availableWidth - 40;
-        let height = width / aspectRatio;
-
-        if (height > availableHeight - 40) {
-          height = availableHeight - 40;
-          width = height * aspectRatio;
-        }
-
-        setCanvasSize({
-          width: Math.floor(width),
-          height: Math.floor(height)
-        });
-      }
-    };
-
-    handleOrientationChange();
-    window.addEventListener('resize', handleOrientationChange);
-    window.addEventListener('orientationchange', handleOrientationChange);
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
-    return () => {
-      window.removeEventListener('resize', handleOrientationChange);
-      window.removeEventListener('orientationchange', handleOrientationChange);
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, []);
-
   // メインゲームループ
-  useEffect(() => {
+  React.useEffect(() => {
     const canvas = canvasRef.current;
     const currentScoreSystem = scoreSystem.current;
     if (!canvas) return;
 
+    // GameLoopのインスタンス作成（引数を更新）
     gameLoopRef.current = new GameLoop(
-      canvas, 
-      gameWorld.current, 
+      canvas,
+      gameWorld.current,
       inputSystem.current,
+      collisionSystem.current,
+      scoreSystem.current,
       gameState
     );
 
+    // ゲームループ開始
     gameLoopRef.current.start();
 
+    // クリーンアップ
     return () => {
       gameLoopRef.current?.stop();
       inputSystem.current.cleanup();
@@ -134,33 +96,9 @@ const GameComponent = () => {
     };
   }, [gameState]);
 
-  // スペースキーでのリトライ
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && gameState.gameOver) {
-        handleRetry();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState.gameOver, handleRetry]);
-
-  // 縦画面警告
+  // 縦向き画面の場合は警告を表示
   if (!isLandscape) {
-    return (
-      <div className="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center p-4">
-        <div className="text-6xl mb-8 animate-bounce">📱↔️</div>
-        <Alert variant="destructive" className="max-w-md bg-gray-800/80">
-          <AlertCircle className="h-4 w-4 text-gray-200" />
-          <AlertTitle className="text-gray-200">デバイスを横向きにしてください</AlertTitle>
-          <AlertDescription className="text-gray-300">
-            Super Morioは横長の画面でのプレイを推奨しています。
-            デバイスを横向きにしてください。
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
+    return <OrientationWarning />;
   }
 
   return (
@@ -177,7 +115,7 @@ const GameComponent = () => {
           className="border border-gray-700 rounded-lg"
         />
         
-        {/* ゲームオーバー表示 */}
+        {/* ゲームオーバー画面 */}
         {gameState.gameOver && (
           <GameOver
             score={gameState.score}
@@ -186,57 +124,18 @@ const GameComponent = () => {
         )}
       </div>
 
-      {/* 仮想ゲームパッド */}
+      {/* キーボードコントロール */}
+      <KeyboardControls
+        onRetry={handleRetry}
+        gameOver={gameState.gameOver}
+      />
+      
+      {/* タッチデバイスの場合は仮想ゲームパッドを表示 */}
       {isTouchDevice && (
-        <div className="fixed bottom-4 left-0 right-0 px-4 flex justify-between items-center" style={{ zIndex: 2 }}>
-          <div className="flex gap-1">
-            <button
-              className="w-14 h-14 bg-gray-800 text-white rounded-full flex items-center 
-                       justify-center text-2xl active:bg-gray-700 select-none touch-none
-                       border-4 border-white/30 shadow-lg"
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handleTouchStart('left');
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handleTouchEnd('left');
-              }}
-            >
-              ←
-            </button>
-            <button
-              className="w-14 h-14 bg-gray-800 text-white rounded-full flex items-center 
-                       justify-center text-2xl active:bg-gray-700 select-none touch-none
-                       border-4 border-white/30 shadow-lg"
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handleTouchStart('right');
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handleTouchEnd('right');
-              }}
-            >
-              →
-            </button>
-          </div>
-          <button
-            className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center 
-                     justify-center text-xl font-bold active:bg-green-500 select-none touch-none
-                     border-4 border-white/30 shadow-lg"
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleTouchStart('jump');
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              handleTouchEnd('jump');
-            }}
-          >
-            A
-          </button>
-        </div>
+        <VirtualGamepad
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        />
       )}
     </main>
   );

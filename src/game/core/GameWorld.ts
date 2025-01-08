@@ -26,16 +26,17 @@ export class GameWorld {
     this.physicsEngine = new PhysicsEngine(this.gravity);
   }
 
-  update(gameState: GameState): void {
-    // 物理演算の更新
-    const newVelocity = this.physicsEngine.updateVelocity({
-      x: gameState.velocity.x,
-      y: gameState.velocity.y
-    });
+  update(gameState: GameState, deltaTime: number): void {
+    // 物理演算の更新（時間ベース）
+    const newVelocity = this.physicsEngine.updateVelocity(
+      gameState.velocity,
+      deltaTime
+    );
     
     const newPosition = this.physicsEngine.updatePosition(
       gameState.position,
-      newVelocity
+      newVelocity,
+      deltaTime
     );
 
     // 位置の制約適用
@@ -48,7 +49,7 @@ export class GameWorld {
     gameState.position = constrainedPosition;
     gameState.velocity = newVelocity;
   }
-
+  
   constrainPosition(x: number, y: number): Vector2D {
     return {
       x: Math.max(0, Math.min(x, this.width - 32)), // プレイヤーの幅を考慮
