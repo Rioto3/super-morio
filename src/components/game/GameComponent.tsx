@@ -62,22 +62,30 @@ const GameComponent = () => {
   const [gameState, setGameState] = useState<GameState>(initialGameState);
 
   // リトライ処理
+// src/components/game/GameComponent.tsx
 const handleRetry = useCallback(() => {
-  // 新しい状態を作成
-  const newState = {
-    ...initialGameState,
-    gameStartTime: Date.now()
-  };
-
-  // 各システムをリセット
-  scoreSystem.current?.reset();
-  
-  // GameLoopを停止してから新しいインスタンスを作成
+  // まず現在のゲームループを停止
   if (gameLoopRef.current) {
     gameLoopRef.current.stop();
   }
 
-  // キャンバスが存在する場合のみ新しいGameLoopを作成
+  // 新しい初期状態を作成
+  const newState = {
+    position: { x: 100, y: 268 },
+    velocity: { x: 0, y: 0 },
+    jumping: false,
+    score: 0,
+    gameOver: false,
+    enemies: [],
+    lastEnemySpawn: Date.now(),
+    spawnInterval: 2000,
+    gameStartTime: Date.now()
+  };
+
+  // スコアシステムをリセット
+  scoreSystem.current?.reset();
+
+  // 新しいゲームループを作成
   if (canvasRef.current) {
     gameLoopRef.current = new GameLoop(
       canvasRef.current,
@@ -87,13 +95,19 @@ const handleRetry = useCallback(() => {
       scoreSystem.current,
       newState
     );
-    gameLoopRef.current.start();
-  }
 
-  // 状態を更新
-  setGameState(newState);
+    // 状態を更新してからゲームループを開始
+    setGameState(newState);
+    setTimeout(() => {
+      gameLoopRef.current?.start();
+    }, 0);
+  }
 }, []);
-  
+
+// GameOverコンポーネントにもonRetryを確実に渡す
+
+
+
 React.useEffect(() => {
   const canvas = canvasRef.current;
   const currentScoreSystem = scoreSystem.current;
@@ -155,11 +169,11 @@ React.useEffect(() => {
         
         {/* ゲームオーバー画面 */}
         {gameState.gameOver && (
-          <GameOver
-            score={gameState.score}
-            onRetry={handleRetry}
-          />
-        )}
+  <GameOver
+    score={gameState.score}
+    onRetry={handleRetry}
+  />
+)}
       </div>
 
       {/* キーボードコントロール */}

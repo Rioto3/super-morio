@@ -101,7 +101,6 @@ private updateState(deltaTime: number): void {
 }
 
 
-// src/game/core/GameLoop.ts の updateEnemies メソッド全体
 
 private updateEnemies(dt: number): void {
  const currentTime = Date.now();
@@ -110,7 +109,7 @@ private updateEnemies(dt: number): void {
  // 敵の生成タイミング調整
  const minSpawnInterval = 1000; // 最小スポーン間隔：1秒
  const initialSpawnInterval = 2000; // 初期スポーン間隔：2秒
- const speedIncrement = 50; // 敵が1体出るごとに何ミリ秒短くするか
+ const speedIncrement = 10000; // 敵が1体出るごとに何ミリ秒短くするか
 
  // スポーン間隔を計算（敵の数に応じて徐々に短くなる）
  const currentSpawnInterval = Math.max(
@@ -121,11 +120,12 @@ private updateEnemies(dt: number): void {
  if (currentTime - state.lastEnemySpawn >= currentSpawnInterval) {
    const enemy = new Enemy(this.canvas.width);
    
-   // 基本速度 + スコアに応じた追加速度
-   const baseSpeed = 400;
-   const speedBonus = state.score * 20; // 1体倒すごとに20ずつ速くなる
-   enemy.velocity.x = -(baseSpeed + speedBonus);
+   // スピード調整（ここを修正）
+   const baseSpeed = 200; // 基本速度を下げる
+   const maxSpeedBonus = 300; // 最大ボーナス速度も制限
+   const speedBonus = Math.min(state.score * 5, maxSpeedBonus); // スコアごとの増加量を5に抑える
    
+   enemy.velocity.x = -(baseSpeed + speedBonus);
    state.enemies.push(enemy);
    state.lastEnemySpawn = currentTime;
  }
