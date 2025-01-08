@@ -1,4 +1,6 @@
 // src/app/layout.tsx
+// アプリ全体の基本設定と環境準備
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
