@@ -18,7 +18,8 @@ export class GameWorld {
   private physicsEngine: PhysicsEngine;
   readonly width: number = 800;
   readonly height: number = 400;
-  readonly groundHeight: number = 300;
+  // readonly groundHeight: number = 300;
+  readonly groundHeight: number = 268; // 300(地面) - 32(プレイヤーの高さ)
   readonly gravity: number = 600;  // 1秒あたりの落下速度として調整
   readonly jumpForce: number = -400;  // 1秒あたりの初速として調整
 

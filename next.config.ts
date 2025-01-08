@@ -4,9 +4,10 @@ const nextConfig = {
     appDir: true,
   },
   devIndicators: {
-    buildActivity: true,
-    buildActivityPosition: 'bottom-right',
+    buildActivity: false
+    // buildActivityPosition: 'bottom-right',
   },
+
 }
 
 module.exports = nextConfig

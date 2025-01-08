@@ -6,14 +6,15 @@ export class Enemy {
   velocity: Vector2D;
   width: number = 32;
   height: number = 32;
+  passed: boolean = false;  // 通過フラグを追加
 
   constructor(canvasWidth: number) {
     this.position = {
       x: canvasWidth,
-      y: 268  // groundHeight - height
+      y: 268  // groundHeightと同じ高さに
     };
     this.velocity = {
-      x: -4,  // 左に移動
+      x: -240,  // 基本速度
       y: 0
     };
   }

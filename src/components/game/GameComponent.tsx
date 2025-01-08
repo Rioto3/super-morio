@@ -47,7 +47,8 @@ const GameComponent = () => {
 
   // 初期ゲーム状態
   const initialGameState: GameState = {
-    position: { x: 100, y: 300 },
+    // position: { x: 100, y: 300 },
+    position: { x: 100, y: 268 },
     velocity: { x: 0, y: 0 },
     jumping: false,
     score: 0,

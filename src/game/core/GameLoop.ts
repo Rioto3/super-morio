@@ -124,28 +124,33 @@ private updateState(deltaTime: number): void {
       );
     }
 
-    // 既存の敵の更新
-    state.enemies = state.enemies.filter(enemy => {
-      // 敵の位置を時間で調整して更新
-      enemy.position.x += enemy.velocity.x;
+  // 既存の敵の更新
+  state.enemies = state.enemies.filter(enemy => {
+    // 敵の位置を時間で調整して更新
+    enemy.position.x += enemy.velocity.x * dt;
 
-     // プレイヤーとの衝突判定
-     if (this.collisionSystem.checkCollision(
-       { position: state.position, width: 32, height: 32 },
-       enemy
-     )) {
-       state.gameOver = true;
-       return true; // 衝突した敵は残す（死亡アニメーション等のため）
-     }
+    // プレイヤーとの衝突判定
+    if (this.collisionSystem.checkCollision(
+      { 
+        position: state.position,
+        width: 32,
+        height: 32
+      },
+      enemy
+    )) {
+      state.gameOver = true;
+    }
 
-     // スコア加算（敵を通過したとき）
-     if (this.hasPassedPlayer(enemy)) {
-       this.scoreSystem.addEnemyAvoidScore();
-       state.score = this.scoreSystem.getCurrentScore();
-     }
+    // スコア加算（敵を通過したとき）を修正
+    if (!enemy.passed && 
+        enemy.position.x + enemy.width < state.position.x) {
+      enemy.passed = true;  // 通過フラグを設定
+      this.scoreSystem.addEnemyAvoidScore();
+      state.score = this.scoreSystem.getCurrentScore();
+    }
 
-     // 画面外の敵を除去
-     return enemy.position.x > -enemy.width;
+    // 画面外の敵を除去
+    return enemy.position.x > -enemy.width;
    });
  }
 
