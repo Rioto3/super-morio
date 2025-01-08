@@ -1,15 +1,22 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react';
+import { Enemy } from '@/game/objects/enemy';
 
 const GameComponent = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameStateRef = useRef({
     x: 100,
     y: 200,
-    vx: 0, // 水平速度を追加
+    vx: 0,
     vy: 0,
-    jumping: false
+    jumping: false,
+    score: 0,
+    gameOver: false,
+    enemies: [] as Enemy[],
+    lastEnemySpawn: 0,
+    spawnInterval: 2000, // 敵の出現間隔（ミリ秒）
+    gameStartTime: Date.now()
   });
   const requestRef = useRef<number | undefined>(undefined);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -26,32 +33,82 @@ const GameComponent = () => {
     const gravity = 0.5;
     const jumpPower = -12;
     const groundY = 300;
-    const moveSpeed = 0.8; // 加速度
-    const maxSpeed = 8; // 最大移動速度
-    const friction = 0.85; // 摩擦係数（減速用）
+    const moveSpeed = 0.8;
+    const maxSpeed = 8;
+    const friction = 0.85;
+
+    const spawnEnemy = () => {
+      const state = gameStateRef.current;
+      const currentTime = Date.now();
+      if (currentTime - state.lastEnemySpawn >= state.spawnInterval) {
+        const enemy = new Enemy(canvas.width);
+        const timePlayed = (currentTime - state.gameStartTime) / 1000; // 秒単位
+
+        // 敵の速度を時間とスコアに応じて調整
+        const scoreSpeedBonus = Math.min(state.score * 0.2, 5); // スコアによる速度ボーナス
+        const timeSpeedBonus = Math.min(timePlayed / 15, 5);    // 時間による速度ボーナス
+        enemy.speed = 4 + scoreSpeedBonus + timeSpeedBonus;     // 基本速度4に加算
+
+        // 出現間隔を時間とスコアに応じて調整
+        const initialInterval = 2000;  // 初期間隔: 2秒
+        const minInterval = 500;       // 最小間隔: 0.5秒
+        const scoreReduction = state.score * 20;  // スコアによる間隔減少
+        const timeReduction = timePlayed * 10;    // 時間による間隔減少
+        state.spawnInterval = Math.max(
+          initialInterval - scoreReduction - timeReduction, 
+          minInterval
+        );
+
+        console.log(`Spawn interval: ${state.spawnInterval}ms, Enemy speed: ${enemy.speed}`);
+        state.enemies.push(enemy);
+        state.lastEnemySpawn = currentTime;
+      }
+    };
+
+    const updateEnemies = () => {
+      const state = gameStateRef.current;
+      // 敵の更新と画面外に出た敵の削除
+      state.enemies = state.enemies.filter(enemy => {
+        enemy.update();
+        
+        // 衝突判定
+        if (enemy.hasCollidedWith({ x: state.x, y: state.y })) {
+          state.gameOver = true;
+        }
+        
+        // スコア加算（通過時）
+        if (enemy.hasPassed({ x: state.x })) {
+          state.score += 1;
+        }
+        
+        return !enemy.isOffScreen();
+      });
+    };
 
     const update = () => {
       const state = gameStateRef.current;
+      if (state.gameOver) return;
 
-      // 水平方向の移動と慣性
+      // 敵の生成
+      spawnEnemy();
+      
+      // 敵の更新
+      updateEnemies();
+
+      // プレイヤーの移動と慣性
       if (keysPressed.current.has('ArrowLeft')) {
         state.vx -= moveSpeed;
-      } if (keysPressed.current.has('ArrowRight')) {
+      } 
+      if (keysPressed.current.has('ArrowRight')) {
         state.vx += moveSpeed;
       }
 
-      // 最大速度の制限
       state.vx = Math.max(Math.min(state.vx, maxSpeed), -maxSpeed);
-
-      // 摩擦による減速
       if (!keysPressed.current.has('ArrowLeft') && !keysPressed.current.has('ArrowRight')) {
         state.vx *= friction;
       }
 
-      // 水平位置の更新
       state.x += state.vx;
-
-      // 画面端での跳ね返り
       if (state.x < 0) {
         state.x = 0;
         state.vx = 0;
@@ -60,18 +117,15 @@ const GameComponent = () => {
         state.vx = 0;
       }
 
-      // 垂直方向の移動と重力
       state.y += state.vy;
       state.vy += gravity;
 
-      // 地面との衝突判定
       if (state.y > groundY - 32) {
         state.y = groundY - 32;
         state.vy = 0;
         state.jumping = false;
       }
 
-      // 速度が極めて小さい場合は0にする（数値の安定化）
       if (Math.abs(state.vx) < 0.1) state.vx = 0;
     };
 
@@ -86,21 +140,40 @@ const GameComponent = () => {
       ctx.fillStyle = '#90EE90';
       ctx.fillRect(0, groundY, canvas.width, 100);
 
+      // 敵
+      ctx.fillStyle = '#000000';
+      state.enemies.forEach(enemy => {
+        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+      });
+
       // プレイヤー
       ctx.fillStyle = '#FF0000';
       ctx.fillRect(state.x, state.y, 32, 32);
 
-      // デバッグ情報
+      // スコア表示
       ctx.fillStyle = 'black';
-      ctx.font = '14px Arial';
-      ctx.fillText(`Speed X: ${state.vx.toFixed(2)}`, 10, 20);
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText(`Score: ${state.score}`, 10, 30);
+
+      // ゲームオーバー表示
+      if (state.gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText(`Final Score: ${state.score}`, canvas.width / 2, canvas.height / 2 + 40);
+      }
     };
 
     const handleKeydown = (e: KeyboardEvent) => {
       const state = gameStateRef.current;
+      if (state.gameOver) return;
+      
       keysPressed.current.add(e.code);
       
-      // ジャンプ処理
       if ((e.code === 'Space' || e.code === 'ArrowUp') && !state.jumping) {
         state.vy = jumpPower;
         state.jumping = true;
