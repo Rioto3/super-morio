@@ -1,13 +1,10 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
-  devIndicators: {
-    buildActivity: false
-    // buildActivityPosition: 'bottom-right',
-  },
+   import NextPWA from 'next-pwa';
 
-}
-
-module.exports = nextConfig
+   export default NextPWA({
+     dest: 'public',
+     register: true,
+     skipWaiting: true,
+     disable: process.env.NODE_ENV === 'development'
+   })({
+     // 通常のNext.js設定
+   });
