@@ -17,7 +17,25 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Super Morio",
-  description: "Super Morio GAME",
+  description: "Classic platformer game reimagined for mobile browsers",
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  icons: {
+    apple: [
+      { url: '/icons/icon-192x192.png' },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Super Morio',
+  },
 };
 
 export default function RootLayout({
@@ -28,20 +46,16 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-
-
-
-className={`${geistSans.variable} ${geistMono.variable} antialiased select-none`}
-style={{
-  WebkitTouchCallout: 'none',
-  WebkitUserSelect: 'none',
-  KhtmlUserSelect: 'none',
-  MozUserSelect: 'none',
-  msUserSelect: 'none',
-  userSelect: 'none',
-}}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased select-none`}
+        style={{
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          KhtmlUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none',
+          userSelect: 'none',
+        }}
       >
-        
         {children}
       </body>
     </html>

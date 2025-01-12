@@ -1,10 +1,18 @@
-   import NextPWA from 'next-pwa';
+/** @type {import('next').NextConfig} */
+import withPWA from 'next-pwa';
 
-   export default NextPWA({
-     dest: 'public',
-     register: true,
-     skipWaiting: true,
-     disable: process.env.NODE_ENV === 'development'
-   })({
-     // 通常のNext.js設定
-   });
+const nextConfig = withPWA({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  experimental: {
+    appDir: true,
+  },
+  devIndicators: {
+    buildActivity: false,
+    // buildActivityPosition: 'bottom-right',
+  },
+});
+
+export default nextConfig;
