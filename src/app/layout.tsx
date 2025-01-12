@@ -14,13 +14,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-<<<<<<< HEAD
-  title: 'Super Morio',
-  description: 'Classic platformer game reimagined for mobile browsers',
-=======
   title: "Super Morio",
   description: "Classic platformer game reimagined for mobile browsers",
->>>>>>> 74364d2fa707eebdc905030cc68ba919fbe90c21
   manifest: '/manifest.json',
   themeColor: '#000000',
   viewport: {
@@ -30,25 +25,16 @@ export const metadata: Metadata = {
     userScalable: false,
   },
   icons: {
-<<<<<<< HEAD
-    icon: '/icons/icon-512x512.png',
-    apple: '/icons/icon-192x192.png',
-=======
     apple: [
       { url: '/icons/icon-192x192.png' },
     ],
->>>>>>> 74364d2fa707eebdc905030cc68ba919fbe90c21
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Super Morio',
   },
-<<<<<<< HEAD
-}
-=======
 };
->>>>>>> 74364d2fa707eebdc905030cc68ba919fbe90c21
 
 export default function RootLayout({
   children,
@@ -57,9 +43,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-<<<<<<< HEAD
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-=======
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased select-none`}
         style={{
@@ -71,7 +54,6 @@ export default function RootLayout({
           userSelect: 'none',
         }}
       >
->>>>>>> 74364d2fa707eebdc905030cc68ba919fbe90c21
         {children}
       </body>
     </html>
