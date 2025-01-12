@@ -1,49 +1,50 @@
-// src/app/layout.tsx
-// アプリ全体の基本設定と環境準備
-
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const geistSans = Geist({
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: "100 900",
 });
-
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {
-  title: "Super Morio",
-  description: "Super Morio GAME",
-};
+  title: 'Super Morio',
+  description: 'Classic platformer game reimagined for mobile browsers',
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  icons: {
+    icon: '/icons/icon-512x512.png',
+    apple: '/icons/icon-192x192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Super Morio',
+  },
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="ja">
-      <body
-
-
-
-className={`${geistSans.variable} ${geistMono.variable} antialiased select-none`}
-style={{
-  WebkitTouchCallout: 'none',
-  WebkitUserSelect: 'none',
-  KhtmlUserSelect: 'none',
-  MozUserSelect: 'none',
-  msUserSelect: 'none',
-  userSelect: 'none',
-}}
-      >
-        
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
-  );
+  )
 }
